@@ -100,5 +100,33 @@ for episode_num in range(1, num_episodes+1):
             alpha = 1 / N[state, action]  # 학습률 감소 (GLIE 조건)
             
             Q[state, action] += alpha * (reward + 0.9 * Q[next_state, next_action] - Q[state, action])  
+            #여기서 매우 중요한 건, 똑같이 저렇게 reversed(episode)를 했다고 하더라도, 저 위에서는 G를 썼지만, 여기서는 그때의 그 reward만을 써서 update를 한다는 것  
 print("학습된 Q 테이블:")
 print(Q)
+
+
+#### 3.n-step SARSA ####
+
+n_step = 3  
+alpha = 0.1
+for episode_num in range(1, num_episodes + 1):
+    epsilon = 1 / episode_num  # Exploration 감소
+    episode = run_episode_next(epsilon)  
+
+    for t in range(len(episode)):  # 각 time step에 대해 반복
+        G = 0  # n-step return 초기화
+
+        # 1. n-step 동안 보상 계산
+        for i in range(n_step):
+            if t + i < len(episode):
+                G += (0.9 ** i) * episode[t + i][2]  # 이건 보상!!!! 
+
+        # 2. n-step 후의 Q 값 추가
+        if t + n_step < len(episode):  
+            next_state = episode[t + n_step][3]  
+            next_action = episode[t + n_step][4]  
+            G += (0.9 ** n_step) * Q[next_state, next_action]  
+
+        # 3. Q 업데이트
+        state, action = episode[t][:2]  # 현재 상태, 행동
+        Q[state, action] += alpha * (G - Q[state, action])  
