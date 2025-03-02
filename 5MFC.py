@@ -68,8 +68,6 @@ print("학습된 Q 테이블:")
 print(Q)
 
 
-
-
 #==============================================================================
 
 #### 2.SARSA ####
@@ -112,7 +110,6 @@ print(Q)
 
 
 #### 3.n-step SARSA ####
-
 n_step = 3  
 alpha = 0.1
 for episode_num in range(1, num_episodes + 1):
@@ -155,7 +152,7 @@ for episode_num in range(1, num_episodes + 1):
         d = reward + 0.9 * Q[next_state,next_action] - Q[state,action]
         
         E[state,action] = E[state,action] + 1 #일단 방문했으니까 +1 증가시킴
-        #흠 여기까지는 그래도 어느정도 이해가 가는데,밑에는 띠용이다.
+        #이부분이 조금 어려웠다ㅠㅠ
         for s in range(num_states):
             for a in range(num_actions):
                 Q[s, a] += alpha * d * E[s, a]  # Q 업데이트
