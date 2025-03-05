@@ -152,7 +152,7 @@ for episode_num in range(1, num_episodes + 1):
         d = reward + 0.9 * Q[next_state,next_action] - Q[state,action]
         
         E[state,action] = E[state,action] + 1 #일단 방문했으니까 +1 증가시킴
-        #이부분이 조금 어려웠다ㅠㅠ
+        #흠 여기까지는 그래도 어느정도 이해가 가는데,밑에는 잘 몰라서
         for s in range(num_states):
             for a in range(num_actions):
                 Q[s, a] += alpha * d * E[s, a]  # Q 업데이트
@@ -170,3 +170,61 @@ for episode_num in range(1, num_episodes + 1):
             Q 값을 업데이트할 때는 현재 상태뿐만 아니라 과거에 방문했던 상태들도 보상의 영향을 받음 
             이걸 처리하기 위해 모든 상태-행동 쌍에 대해 Eligibility Trace를 곱해서 업데이트
             """
+
+#### 5. Q-Learning ####
+
+def greedy_policy_action(Q, state): #state만 주어질 때 best action을 찾는 greedy
+    return np.argmax(Q[state])
+
+    #ver1. 정석 버전 - 35p : Q(St ,At ) ←Q(St ,At ) + α Rt+1 + γQ(St+1,A′)−Q(St ,At ) 이 식 그대로 
+for episode_num in range(1, num_episodes+1):
+    epsilon = 1 / episode_num # episode를 점점 늘려갈 때마다 epsilon값이 줄어든다. 
+    #behaviro policy ( 내가 관찰한 policy )
+    episode = run_episode_next(epsilon) 
+    
+    visited = set()  # 첫 방문 판별용
+    
+    for state, action, reward, next_state, next_action in reversed(episode): 
+        if (state, action) not in visited:  
+            visited.add((state, action))  
+            
+            N[state, action] += 1  # 방문 횟수 증가
+            alpha = 1 / N[state, action]  # 학습률 감소 (GLIE 조건)
+            
+            # target policy에서의 action 추출? 
+            # 어떻게 target policy를 특정하지? 일단 greedy라고 나와있으니, greedy하게 episode를 뽑아보자. 
+            next_action_target = greedy_policy_action(Q, next_state)  # 목표 정책의 행동 선택
+            
+            Q[state, action] += alpha * (reward + 0.9 * Q[next_state, next_action_target] - Q[state, action])
+    
+print("학습된 Q 테이블:")
+print(Q)
+
+
+
+def greedy_policy_val(Q, state): #state가 주어질 때 best action을 선택해서 값을 찾는 greedy
+    return np.max(Q[state])
+
+    #ver2. 정리 버전 - 37p : Q(S,A) ←Q(S,A) + α R + γ maxa′Q(S′,a′)−Q(S,A)
+for episode_num in range(1, num_episodes+1):
+    epsilon = 1 / episode_num # episode를 점점 늘려갈 때마다 epsilon값이 줄어든다. 
+    #behaviro policy ( 내가 관찰한 policy )
+    episode = run_episode_next(epsilon) 
+    
+    visited = set()  # 첫 방문 판별용
+    
+    for state, action, reward, next_state, next_action in reversed(episode): 
+        if (state, action) not in visited:  
+            visited.add((state, action))  
+            
+            N[state, action] += 1  # 방문 횟수 증가
+            alpha = 1 / N[state, action]  # 학습률 감소 (GLIE 조건)
+            
+            # target policy에서의 action 추출? 
+            # 어떻게 target policy를 특정하지? 일단 greedy라고 나와있으니, greedy하게 episode를 뽑아보자. 
+            next_val = greedy_policy_val(Q, next_state)  # 최대 Q 값 사용
+            
+            Q[state, action] += alpha * (reward + 0.9 * next_val - Q[state, action])
+            #여기서 매우 중요한 건, 똑같이 저렇게 reversed(episode)를 했다고 하더라도, 저 위에서는 G를 썼지만, 여기서는 그때의 그 reward만을 써서 update를 한다는 것
+print("학습된 Q 테이블:")
+print(Q)
