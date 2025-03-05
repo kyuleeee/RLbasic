@@ -228,3 +228,31 @@ for episode_num in range(1, num_episodes+1):
             #여기서 매우 중요한 건, 똑같이 저렇게 reversed(episode)를 했다고 하더라도, 저 위에서는 G를 썼지만, 여기서는 그때의 그 reward만을 써서 update를 한다는 것
 print("학습된 Q 테이블:")
 print(Q)
+
+'''
+- SARSA vs Q-Learning
+    - next_state, next_action은 어디서?
+        - next_state : 둘다 기존의 policy(behavior policy)에서 뽑는다.
+        - next_action :
+            - SARSA : from behavior policy *(run_episode_next 함수 활용)*
+            - Q-Learning : from target policy *(greedy_policy_action 함수 or greedy_policy_val)*
+                
+                ⇒ 그렇다면, 언제 greedy_policy_action을? 언제 greedy_policy_val을?
+                
+                greedy_policy_action : 
+                
+                최적의 행동(next action)을 직접 선택
+                
+                `argmax(Q[state])`를 사용해 가장 높은 Q 값을 가진 행동 선택
+                
+                greedy_policy_val : 
+                
+                특정 상태에서 최대 Q 값을 가져오기 위해 사용
+                
+                `max(Q[state])`를 사용해 가능한 행동 중 최대 Q 값 반환
+- epsilon_greedy_policy vs greedy_policy
+    - e_greedy : 탐색(exploration)까지 고려해야 할 때
+        → 그래서 저기에 np.random.choice를 넣어두는 것임.
+    - - greedy_policy : 가장 좋은 행동, 좋은 값만 선택할 때
+        → 그래서 저기에 np.random.choice가 없는 것
+'''
