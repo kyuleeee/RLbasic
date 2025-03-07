@@ -201,9 +201,7 @@ for episode_num in range(1, num_episodes + 1):
 print(w)
 
 #### 5. Q-Learning ####
-
-
-def greedy_policy_val_weight(Q, state,action): #state가 주어질 때 best action을 선택해서 값을 찾는 greedy
+def greedy_policy_val_weight(Q,state,action): #state가 주어질 때 best action을 선택해서 값을 찾는 greedy
     #return np.max(VFA(state,action,w)) #현실적으로 greedy가 안될 거 같다? 이부분이? 
     return np.max([VFA(state, action, w) for action in range(num_actions)])
 
@@ -239,3 +237,41 @@ Q-learning에서는, 그 다음에 최적의 행동을 선택할 때,
 (이전에는 단순히 Q[state]의 max를 뽑았는데?)
 => 일단 state가 고정되어 있으니까, 너무 걱정하지 말고 그 state에 해당하는 action을 뽑아서 그 action에 대한 가중치를 뽑아보자.
 '''
+### 6. DQN ###
+
+w = np.zeros(num_states * num_actions)  # 가중치 벡터
+w_minus = np.copy(w)
+def get_mini_batch(episode, batch_size):
+      """ 주어진 episode에서 미니 배치를 샘플링하는 함수 """
+    # 무작위로 미니 배치 샘플링 (배치 사이즈 만큼)
+    mini_batch = random.sample(episode, batch_size)
+    return mini_batch
+    
+for episode_num in range(1, num_episodes+1):
+    epsilon = 1 / episode_num # episode를 점점 늘려갈 때마다 epsilon값이 줄어든다. 
+    #behavior policy ( 내가 관찰한 policy )
+    episode = run_episode_next(epsilon) #e-greedy로 episode를 뽑아낸다.
+    
+    visited = set()  # 첫 방문 판별용
+    
+    #매번 뽑는 게 아니라, random mini-batch를 뽑는다 
+    batch_size = 4 
+    mini_batch = get_mini_batch(episode, batch_size)
+    
+    for state, action, reward, next_state, next_action in mini_batch: 
+        if (state, action) not in visited:  
+            visited.add((state, action))  
+            
+            N[state, action] += 1  # 방문 횟수 증가
+            alpha = 1 / N[state, action]  # 학습률 감소 (GLIE 조건)
+            
+            # target policy에서의 action 추출? 
+            # 어떻게 target policy를 특정하지? 일단 greedy라고 나와있으니, greedy하게 episode를 뽑아보자. 
+            #next_val = greedy_policy_val(Q, next_state)
+            next_val = VFA(next_state, next_action, w_minus) #왜냐면, 저기 식에서 w_minus를 쓰니까
+            w += alpha * (reward + 0.9 * next_val - VFA(state, action, w)) * feature_vector(state, action, num_states, num_actions)
+    if episode_num % 10 == 0:  # 예: 10 에피소드마다 동기화
+        w_minus = np.copy(w)
+            
+print("w")
+print(w)
