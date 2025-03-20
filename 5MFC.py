@@ -61,6 +61,7 @@ for episode_num in range(1, num_episodes+1):
             visited.add((state, action)) 
             N[state, action] += 1  # 특정 state, 특정 action에 대해 방문 횟수 증가
             alpha = 1 / N[state, action]  # GLIE 조건: α → 0 (학습율 감소)
+            
             Q[state, action] += alpha * (G - Q[state, action])  # Q(s,a) 업데이트
             
             

@@ -16,7 +16,7 @@ w = np.zeros(num_states)  # feature vector의 크기만큼 가중치 생성
 # ε-greedy policy [만약, 저 epsilon이 고정이라면 그냥 exploration만 계속하게 됨]
 def epsilon_greedy_policy(w, state, epsilon):
     # 행동에 대한 VFA 값 계산
-    action_values = [VFA(state, w) for _ in range(num_actions)]
+    action_values = [VFA(state, w) for _ in range(num_actions)] #수정 
     
     # 가장 높은 VFA 값을 가지는 행동 선택
     best_action = np.argmax(action_values)
@@ -43,6 +43,7 @@ def run_episode(epsilon, max_steps=10):
         if len(episode) >= max_steps:  # 최대 10번 이동 후 종료
             break
     return episode
+
 def feature_vector(state, num_states):
     vec = np.zeros(num_states)
     vec[state] = 1  
@@ -66,11 +67,12 @@ for episode_num in range(1, num_episodes+1):
             visited.add((state, action)) 
             state_vec = feature_vector(state,num_states) # 상태 벡터 생성
             alpha = 1 / (episode_num + 1)
+            
             w += alpha * (G - VFA(state, w)) * state_vec  # w 업데이트
             #Q[state, action] += alpha * (G - Q[state, action])여기서는 이걸 할 필요가 없음. 단순히 w만 업데이트 하면 됨. 
             
-print("학습된 Q 테이블:")
-print(Q)
+print("W:")
+print(w)
 
 
 #==============================================================================
@@ -112,10 +114,10 @@ def feature_vector(state,action,num_states,num_actions):
     vec = np.zeros(num_states * num_actions)
     vec[state * num_actions + action] = 1  
     return vec
-  
+
 def VFA(state, action, w):
     return np.dot(w, feature_vector(state, action, num_states, num_actions))  # state-action에 대한 가중치 적용
-  
+
 for episode_num in range(1, num_episodes+1):
     epsilon = 1 / episode_num # episode를 점점 늘려갈 때마다 epsilon값이 줄어든다. 
     episode = run_episode_next(epsilon)  
@@ -125,8 +127,10 @@ for episode_num in range(1, num_episodes+1):
     for state, action, reward, next_state, next_action in reversed(episode):
         if (state, action) not in visited:  
             visited.add((state, action)) 
-            state_action_vec = feature_vector(state,action, num_states,num_actions) # 상태 벡터 생성
+            state_action_vec = feature_vector(state, action, num_states,num_actions) # 상태 벡터 생성
+            
             alpha = 1 / (episode_num + 1)
+            
             w += alpha * (reward + 0.9 * VFA(next_state, next_action, w) - VFA(state, action, w)) * state_action_vec
             
 print("학습된 가중치 벡터 w:")
@@ -177,7 +181,7 @@ for episode_num in range(1, num_episodes + 1):
     episode = run_episode_next(epsilon)
 
     for state, action, reward, next_state, next_action in reversed(episode):
-        d = reward + gamma * VFA(next_state, next_action, w) - VFA(state, action, w#d = reward + 0.9 * Q[next_state,next_action] - Q[state,action]
+        d = reward + gamma * VFA(next_state, next_action, w) - VFA(state, action, w)#d = reward + 0.9 * Q[next_state,next_action] - Q[state,action]
         
         E[state,action] = E[state,action] + 1 #일단 방문했으니까 +1 증가시킴
         #흠 여기까지는 그래도 어느정도 이해가 가는데,밑에는 잘 몰라서
@@ -205,7 +209,6 @@ def greedy_policy_val_weight(Q,state,action): #state가 주어질 때 best actio
     #return np.max(VFA(state,action,w)) #현실적으로 greedy가 안될 거 같다? 이부분이? 
     return np.max([VFA(state, action, w) for action in range(num_actions)])
 
-
     #ver2. 정리 버전 - 37p : Q(S,A) ←Q(S,A) + α R + γ maxa′Q(S′,a′)−Q(S,A)
 for episode_num in range(1, num_episodes+1):
     epsilon = 1 / episode_num # episode를 점점 늘려갈 때마다 epsilon값이 줄어든다. 
@@ -225,8 +228,8 @@ for episode_num in range(1, num_episodes+1):
             # 어떻게 target policy를 특정하지? 일단 greedy라고 나와있으니, greedy하게 episode를 뽑아보자. 
             #next_val = greedy_policy_val(Q, next_state)
             next_val =greedy_policy_val_weight(state,action,w) #이게 맞는건가?
-            w += alpha * (reward + 0.9 * next_val - VFA(state, action, w)) * feature_vector(state, action, num_states, num_actions)
             
+            w += alpha * (reward + 0.9 * next_val - VFA(state, action, w)) * feature_vector(state, action, num_states, num_actions)
             #여기서 매우 중요한 건, 똑같이 저렇게 reversed(episode)를 했다고 하더라도, 저 위에서는 G를 썼지만, 여기서는 그때의 그 reward만을 써서 update를 한다는 것
 print("w")
 print(w)
@@ -238,9 +241,9 @@ Q-learning에서는, 그 다음에 최적의 행동을 선택할 때,
 => 일단 state가 고정되어 있으니까, 너무 걱정하지 말고 그 state에 해당하는 action을 뽑아서 그 action에 대한 가중치를 뽑아보자.
 '''
 ### 6. DQN ###
-
 w = np.zeros(num_states * num_actions)  # 가중치 벡터
 w_minus = np.copy(w)
+
 def get_mini_batch(episode, batch_size):
       """ 주어진 episode에서 미니 배치를 샘플링하는 함수 """
     # 무작위로 미니 배치 샘플링 (배치 사이즈 만큼)
@@ -270,6 +273,7 @@ for episode_num in range(1, num_episodes+1):
             #next_val = greedy_policy_val(Q, next_state)
             next_val = VFA(next_state, next_action, w_minus) #왜냐면, 저기 식에서 w_minus를 쓰니까
             w += alpha * (reward + 0.9 * next_val - VFA(state, action, w)) * feature_vector(state, action, num_states, num_actions)
+    
     if episode_num % 10 == 0:  # 예: 10 에피소드마다 동기화
         w_minus = np.copy(w)
             

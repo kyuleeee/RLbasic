@@ -23,7 +23,7 @@ env = gym.make('CartPole-v1')
 class QNetwork(nn.Module):
     def __init__(self, state_dim, action_dim):
         super(QNetwork, self).__init__()
-        self.fc1 = nn.Linear(state_dim, 64)
+        self.fc1 = nn.Linear(state_dim, 64) 
         self.fc2 = nn.Linear(64, 64)
         self.fc3 = nn.Linear(64, action_dim)
 
@@ -81,7 +81,7 @@ for episode in range(num_episodes):
             states, actions, rewards, next_states, dones = get_mini_batch(batch_size)
             
             # 현재 Q 네트워크에서 Q값 계산
-            q_values = q_network(states)
+            q_values = q_network(states) #feature vector뽑기 + w내적이 다 여기에 포함된 과정임. 
             q_value = q_values.gather(1, actions.unsqueeze(1))  # 현재 행동에 대한 Q값
 
             # 타겟 네트워크에서 Q값 계산
