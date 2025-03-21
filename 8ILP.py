@@ -1,12 +1,9 @@
-#This is for simple maze RL with Dyna-Q! 
-
 import numpy as np
 import matplotlib.pyplot as plt
 import time
-
 import argparse
 
-# 미로 크기 설정 (7x7 미로)
+# 미로 크기 설정 (6x9 미로)
 maze = np.array([
     [0, 0, 0, 0, 0, 0, 0, 1, 0],  # 벽 (1)
     [0, 0, 1, 0, 0, 0, 0, 1, 0],  # 길 (0)
@@ -16,25 +13,31 @@ maze = np.array([
     [0, 0, 0, 0, 0, 0, 0, 0, 0]
 ])
 
-# 시작점과 목표점
-start = (2,0)
-goal = (0,8)
+start = (2, 0)
+goal = (0, 8)
 
-# 미로 출력 함수 (matplotlib을 사용한 미로 출력)
-def plot_maze(maze, agent_position):
-    fig, ax = plt.subplots(figsize=(6, 6))
-    ax.imshow(maze, cmap='binary')  # 벽은 흰색, 길은 검정색
-    ax.scatter(agent_position[1], agent_position[0], c='red', s=100, marker='*')  # 에이전트 위치
+actions = ['up', 'down', 'left', 'right']
+action_map = {0: 'up', 1: 'down', 2: 'left', 3: 'right'}
 
-    ax.set_xticks(np.arange(-0.5, len(maze[0]), 1), minor=True)
-    ax.set_yticks(np.arange(-0.5, len(maze), 1), minor=True)
-    ax.grid(which='minor', color='black', linestyle='-', linewidth=2)
-
-    # 목표 위치 표시
-    ax.scatter(goal[1], goal[0], c='green', s=100, marker='x')
-
+# 미로 출력 함수
+def plot_maze(maze, agent_position, ax=None, agent_plot=None):
+    if ax is None or agent_plot is None:
+        fig, ax = plt.subplots(figsize=(6, 6))
+        ax.imshow(maze, cmap='binary')
+        ax.scatter(goal[1], goal[0], c='green', s=100, marker='x')
+        agent_plot = ax.scatter(agent_position[1], agent_position[0], c='red', s=100, marker='*')
+        ax.set_xticks(np.arange(-0.5, maze.shape[1], 1), minor=True)
+        ax.set_yticks(np.arange(-0.5, maze.shape[0], 1), minor=True)
+        ax.grid(which='minor', color='black', linestyle='-', linewidth=2)
+        ax.set_title(title, fontsize=14)
+        plt.ion()
+        plt.show()
+        return ax, agent_plot
+    
+    agent_plot.set_offsets([agent_position[1], agent_position[0]])
     plt.draw()
-    plt.pause(0.1)  # 0.1초 동안 화면을 멈춤 (애니메이션 효과)
+    plt.pause(0.01)
+    return ax, agent_plot
 
 # 에이전트 이동 함수
 def move_agent(agent_position, direction):
@@ -47,113 +50,77 @@ def move_agent(agent_position, direction):
         return (x, y-1)
     elif direction == 'right' and y < maze.shape[1] - 1 and maze[x, y+1] != 1:
         return (x, y+1)
-    return agent_position  # 이동 불가능할 경우 기존 위치 반환
+    return agent_position
 
-# 게임 시작
-current_position = start
-steps = 0
+# 상태 인덱스 변환
+def state_index(state):
+    return state[0] * maze.shape[1] + state[1]
 
-print("Start Maze Game:")
-plt.ion()  # 인터랙티브 모드 시작
-plot_maze(maze, current_position)
+# Q-테이블 및 모델 초기화
+num_states = maze.shape[0] * maze.shape[1]
+num_actions = len(actions)
+Q = np.zeros((num_states, num_actions))
+Model = {}
 
-# 에이전트가 목표에 도달할 때까지 반복
-while current_position != goal:
-    direction = input("Move (up/down/left/right): ")
-    current_position = move_agent(current_position, direction)
-    steps += 1
-    print(f"Step {steps}:")
-    plot_maze(maze, current_position)
-
-print("You reached the goal!")
-plt.ioff()  # 인터랙티브 모드 종료
-plt.show()
-
-
-## 1. SARSA ####
-num_states = 54   # 상태 개수
-num_actions = 4  # 행동 개수
-
-# Q-테이블 초기화 (모든 Q(s,a)를 0으로 시작) 
-# Q(s,a) ==  E[ Gt | St= s , At = a]
-Q = np.zeros((num_states, num_actions)) 
-
-# 각 상태에서 방문 횟수 저장
-N = np.zeros((num_states, num_actions))
-
-# ε-greedy policy
+# ε-greedy 정책
 def epsilon_greedy_policy(Q, state, epsilon):
-    m = len(Q[state])
-    best_action = np.argmax(Q[state])  # Q 값이 가장 높은 행동 선택
-    
-    policy = np.full(m, epsilon / m)   # 모든 행동에 대해 ε/m 확률 부여
-    policy[best_action] += 1 - epsilon # 가장 좋은 행동에는 1 - ε 추가 확률
-    
-    return np.random.choice(np.arange(m), p=policy)
-
-def run_episode_next(epsilon, max_steps=10):
-    episode = []  
-    state = start
-    action = epsilon_greedy_policy(Q, state, epsilon)  # 초기 행동 선택
-
-    while True:
-        next_state = move_agent(state,action)  # 임의의 환경 이동
-        reward = np.random.randn()
-        next_action = epsilon_greedy_policy(Q, next_state, epsilon) # 다음 행동 선택
-        
-        episode.append((state, action, reward, next_state, next_action)) 
-        
-        state, action = next_state, next_action  # SARSA는 (s, a, r, s', a') 방식으로 진행!
-
-        if len(episode) >= max_steps:  # 최대 10번 이동 후 종료
-            break
-    return episode   
-
-def greedy_policy_action(Q, state): #state만 주어질 때 best action을 찾는 greedy
+    if np.random.rand() < epsilon:
+        return np.random.choice(num_actions)
     return np.argmax(Q[state])
 
-for episode_num in range(1, num_episodes+1):
-    epsilon = 1 / episode_num # episode를 점점 늘려갈 때마다 epsilon값이 줄어든다. 
-    episode = run_episode_next(epsilon)  
+# Dyna-Q 알고리즘
+def DynaQ(planning_step, num_episodes, alpha=0.1, gamma=0.9, epsilon=0.1):
+    global Q, Model
     
-    visited = set()  # 첫 방문 판별용
+    ax, agent_plot = plot_maze(maze, start)
     
-    for state, action, reward, next_state, next_action in reversed(episode):
-        #현실세계의 에피소드 인거지. 
-        if (state, action) not in visited:  
-            visited.add((state, action))  
+    for episode in range(num_episodes):
+        state = start
+        state_idx = state_index(state)
+        num_step = 0
+        
+        while state != goal:
+            action = epsilon_greedy_policy(Q, state_idx, epsilon)
+            next_state = move_agent(state, action_map[action])
+            next_state_idx = state_index(next_state)
+            reward = 1 if next_state == goal else -0.01
             
-            N[state, action] += 1  # 방문 횟수 증가
-            alpha = 1 / N[state, action]  # 학습률 감소 (GLIE 조건)
+            # Q 업데이트
+            Q[state_idx, action] += alpha * (reward + gamma * np.max(Q[next_state_idx]) - Q[state_idx, action])
             
-            Q[state, action] += alpha * (reward + 0.9 * Q[next_state, next_action] - Q[state, action])
-            # target policy에서의 action 추출? 
-            # 어떻게 target policy를 특정하지? 일단 greedy라고 나와있으니, greedy하게 episode를 뽑아보자. 
-            next_val = greedy_policy_val(Q, next_state)  # 최대 Q 값 사용
+            # 환경 모델 업데이트
+            Model[(state_idx, action)] = (next_state_idx, reward)
             
+            # Planning 단계
+            for _ in range(planning_step):
+                sampled_state_idx, sampled_action = list(Model.keys())[np.random.randint(len(Model))]
+                sampled_next_state_idx, sampled_reward = Model[(sampled_state_idx, sampled_action)]
+                Q[sampled_state_idx, sampled_action] += alpha * (sampled_reward + gamma * np.max(Q[sampled_next_state_idx]) - Q[sampled_state_idx, sampled_action])
             
-            Q[state, action] += alpha * (reward + 0.9 * next_val - Q[state, action])
-            
-            
-            #여기서 매우 중요한 건, 똑같이 저렇게 reversed(episode)를 했다고 하더라도, 저 위에서는 G를 썼지만, 여기서는 그때의 그 reward만을 써서 update를 한다는 것
-print("학습된 Q 테이블:")
-print(Q)
+            state = next_state
+            state_idx = next_state_idx
+            ax, agent_plot = plot_maze(maze, state, ax, agent_plot)
+            num_step += 1
+        
+        print(f"Episode {episode + 1} completed with {num_step} steps!")
+    
+    return Q
 
-
+# 메인 함수
 def main():
     parser = argparse.ArgumentParser(description="Simple maze with Dyna-Q")
-    parser.add_argument("--planning_step", type=int, default=5, help="Number of states")
-    parser.add_argument("--num_episodes", type=int, default=5000, help="Number of training episodes")
-
+    parser.add_argument("--planning_step", type=int, default=5, help="Number of planning steps")
+    parser.add_argument("--num_episodes", type=int, default=10, help="Number of training episodes")
     args = parser.parse_args()
-
-    if args.planning_step == 0 :
-        Q = SARSA(args.num_episode)
-    else :  
-        Q = DynaQ(args.planning_step,args.num_episodes)
+    
+    global Q, Model
+    Q = np.zeros((num_states, num_actions))  # Q-테이블 초기화
+    Model = {}  # 환경 모델 초기화
+    
+    final_Q = DynaQ(args.planning_step, args.num_episodes)
     
     print("\nFinal Q-table:")
-    print(Q)
+    print(final_Q)
 
 if __name__ == "__main__":
     main()
