@@ -23,7 +23,9 @@ This is a repository for implementing RL basic code from David Silver's https://
 
 # 8ILP.py
 Plot maze with Dyna-Q Algorithm
+
 8ILP_cute.py : maze with cute ver 
+
 8ILP_color.py : maze with color ver
 
 <img width="353" alt="Image" src="https://github.com/user-attachments/assets/0b6d391a-dda1-4bf9-88cd-7d23a85562b4" />
