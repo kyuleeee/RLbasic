@@ -136,5 +136,3 @@ for episode_num in range(1, num_episodes + 1):
 # 학습된 파라미터 출력
 print("Theta:")
 print(theta)
-
-
