@@ -74,29 +74,29 @@ def epsilon_greedy_policy(Q, state, epsilon):
 def DynaQ(planning_step, num_episodes, alpha=0.1, gamma=0.9, epsilon=0.1):
     global Q, Model
     
-    ax, agent_plot = plot_maze(maze, start)
+    ax, agent_plot = plot_maze(maze, start) #일단 maze만들고
     
     for episode in range(num_episodes):
         state = start
-        state_idx = state_index(state)
+        state_idx = state_index(state) #idx를 통해 table을 만들어야하니.
         num_step = 1
         
         while state != goal:
             action = epsilon_greedy_policy(Q, state_idx, epsilon)
             next_state = move_agent(state, action_map[action])
             next_state_idx = state_index(next_state)
-            reward = 1 if next_state == goal else -0.01
+            reward = 1 if next_state == goal else -0.01 #reward는 goal에 도착할때만!
             
             # Q 업데이트
-            Q[state_idx, action] += alpha * (reward + gamma * np.max(Q[next_state_idx]) - Q[state_idx, action])
+            Q[state_idx, action] += alpha * (reward + gamma * np.max(Q[next_state_idx]) - Q[state_idx, action]) #Q-learning에서 봤듯이.
             
             # 환경 모델 업데이트
-            Model[(state_idx, action)] = (next_state_idx, reward)
+            Model[(state_idx, action)] = (next_state_idx, reward) #next랑 reward
             
             # Planning 단계
             for _ in range(planning_step):
-                sampled_state_idx, sampled_action = list(Model.keys())[np.random.randint(len(Model))]
-                sampled_next_state_idx, sampled_reward = Model[(sampled_state_idx, sampled_action)]
+                sampled_state_idx, sampled_action = list(Model.keys())[np.random.randint(len(Model))] #요거 어케할지 몰라서 지피티참고
+                sampled_next_state_idx, sampled_reward = Model[(sampled_state_idx, sampled_action)] #next랑 reward저장되어잇는고임
                 Q[sampled_state_idx, sampled_action] += alpha * (sampled_reward + gamma * np.max(Q[sampled_next_state_idx]) - Q[sampled_state_idx, sampled_action])
             
             state = next_state
